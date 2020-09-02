@@ -1,0 +1,40 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../sampling/c_code/include/protras.hpp
+iostream
+-
+map
+-
+vector
+-
+string
+-
+set
+-
+boost/python/list.hpp
+-
+boost/python/dict.hpp
+-
+boost/python.hpp
+-
+math.h
+-
+limits
+-
+
+/temp_download/coresetk/sampling/c_code/src/core.cpp
+protras.hpp
+-
+boost/python.hpp
+-
+
+/temp_download/coresetk/sampling/c_code/src/protras.cpp
+protras.hpp
+-
+

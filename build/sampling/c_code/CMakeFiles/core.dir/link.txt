@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC   -shared  -o ../../../sampling/__c__/core.so CMakeFiles/core.dir/src/core.cpp.o CMakeFiles/core.dir/src/protras.cpp.o -Wl,-rpath,/usr/local/lib:/.conda/clusk/lib /usr/local/lib/libboost_python3.so /.conda/clusk/lib/libpython3.8.so 

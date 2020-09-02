@@ -3,8 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/include/python3.6m"
+                "${workspaceFolder}/**"
+                "${workspaceFolder}/sampling/c_code/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

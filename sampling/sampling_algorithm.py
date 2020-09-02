@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from utils.pipeline_operator import PipelineOperator
 
 class SamplingAlgorithm(PipelineOperator, ABC):
     def __init__(self, plot_enable=False,

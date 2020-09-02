@@ -1,0 +1,5 @@
+/temp_download/coresetk/build/CMakeFiles/rebuild_cache.dir
+/temp_download/coresetk/build/CMakeFiles/edit_cache.dir
+/temp_download/coresetk/build/sampling/c_code/CMakeFiles/rebuild_cache.dir
+/temp_download/coresetk/build/sampling/c_code/CMakeFiles/core.dir
+/temp_download/coresetk/build/sampling/c_code/CMakeFiles/edit_cache.dir
