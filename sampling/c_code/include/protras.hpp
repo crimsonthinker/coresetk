@@ -13,16 +13,14 @@
 class _ProTraS
 {
     private:
-        boost::python::list py_dis_to_rep;
-        boost::python::dict py_rep_set;
-        boost::python::list py_coreset_indices;
-        double tmp_euclide_distance(Point&, Point&);
-        double get_distance(Coord&, DistanceMap&, int, int, std::string);
-        void set_distance(DistanceMap &, int, int, double);
+        float epsilon = 0.015;
+        std::string cal_mode;
+        float _euclide_distance(float*, float*, int);
+        float _get_distance(float**, float**, int, int, int);
+        void _set_distance(float**, int, int, float);
     public:
-        void run_protras(boost::python::list&, double, std::string);
-        boost::python::list get_coreset_indices();
-        boost::python::dict get_rep();
-        boost::python::dict get_dis_to_rep();
-        boost::python::dict get_rep_set();
+        void set_cal_mode(std::string);
+        void set_eps(float);
+        void run_protras(boost::python::numpy::ndarray&,
+        boost::python::list&, boost::python::dict&);
 };

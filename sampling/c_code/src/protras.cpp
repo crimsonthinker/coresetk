@@ -1,18 +1,18 @@
 #include <protras.hpp>
 
-double _ProTraS::tmp_euclide_distance(Point &p1, Point &p2)
+float _ProTraS::_euclide_distance(float *p1, float *p2, int dim)
 {
     double res = 0.0;
-    for (int i = 0; i < p1.size(); i++)
+    for (int i = 0; i < dim; i++)
     {
         res += pow(p1[i] - p2[i], 2);
     }
     return sqrt(res);
 }
 
-double _ProTraS::get_distance(Coord &c_coord, DistanceMap &distance_map, int d1, int d2, std::string cal_mode)
+float _ProTraS::_get_distance(float **c_coord, float **distance_map, int d1, int d2, int dim)
 {
-    if (cal_mode == "memory-based")
+    if (this->cal_mode == "memory-based")
     {
         int first = -1;
         int second = -1;
@@ -26,17 +26,19 @@ double _ProTraS::get_distance(Coord &c_coord, DistanceMap &distance_map, int d1,
             first = d2;
             second = d1 - d2;
         }
-        float distance = tmp_euclide_distance(c_coord[first], c_coord[second]);
-        distance_map[first][second] = tmp;
+        if (distance_map[first][second] < 0.0){
+            float distance = _euclide_distance(c_coord[d1], c_coord[d2], dim);
+            distance_map[first][second] = distance;
+        } 
         return distance_map[first][second];
     }
     else
     {
-        return tmp_euclide_distance(c_coord[d1], c_coord[d2]);
+        return _euclide_distance(c_coord[d1], c_coord[d2], dim);
     }
 }
 
-void _ProTraS::set_distance(DistanceMap &distance_map, int d1, int d2, double distance_value)
+void _ProTraS::_set_distance(float **distance_map, int d1, int d2, float distance_value)
 {
     int first = -1;
     int second = -1;
@@ -53,22 +55,40 @@ void _ProTraS::set_distance(DistanceMap &distance_map, int d1, int d2, double di
     distance_map[first][second] = distance_value;
 }
 
-void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon, std::string cal_mode)
+void _ProTraS::set_eps(float eps){
+    epsilon = eps;
+}
+
+void _ProTraS::set_cal_mode(std::string mode){
+    if(mode != "memory-based" && mode != "ram-based"){
+        std::cout << "Unknown calculation mode: Choosing default";
+        this->cal_mode = "ram-based";
+    }else{
+        this->cal_mode = mode;
+    }
+}
+
+void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, 
+                            boost::python::list &py_dis_to_rep,
+                            boost::python::dict &py_rep_set)
 {
     //Get shape of data
     int data_size = coord.shape(0);
     int dim = coord.shape(1);
 
-    //convert coord to C++ array
+    //convert coord to C++ matrix
     float** c_coord = reinterpret_cast<float**>(coord.get_data());
 
     //initialize supporting variable
-    float **distance_map = new float*[data_size];
+    float **distance_map;
+    if(this->cal_mode == "memory-based"){
+        distance_map = new float*[data_size];
+    }
     bool **rep = new bool*[data_size];
     float *dis_to_rep = new float[data_size];
     for(int i = 0 ; i < data_size ; i++){
-        if (cal_mode == "memory-based"){
-            distance_map[i] = new float[data_size - i];
+        if (this->cal_mode == "memory-based"){
+            distance_map[i] = new float[data_size - i]{-1.0};
         }
         rep[i] = new bool[data_size];
         dis_to_rep[i] = -1.0;
@@ -79,19 +99,13 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
     
 
     //initialize representative
+    double max_length = 0.0;
     rep[initial_point_index][initial_point_index] = true;
     for(int i = 0 ; i < data_size ; i++)
     {
-        rep[initial_point_index][i] = true
-        double distance = get_distance(c_coord, distance_map, initial_point_index, i, cal_mode);
+        rep[initial_point_index][i] = true;
+        float distance = _get_distance(c_coord, distance_map, initial_point_index, i, dim);
         dis_to_rep[i] = distance;
-    }
-
-    //find maximum distance
-    double max_length = 0.0;
-    for(int i = 0 ; i < data_size ; i++)
-    {
-        float distance = get_distance(c_coord, distance_map, initial_point_index, x.first, cal_mode);
         if (distance > max_length)
         {
             max_length = distance;
@@ -100,6 +114,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
 
     /****************************************************************************/
     double cost = 0.0;
+    int coreset_size = 0;
     do
     {
         //Step 1: For each representative, find cost and largest distance
@@ -111,7 +126,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
         //for each representative
         for(int i = 0 ; i < data_size ; i++)
         {
-            int rep_size = 0
+            int rep_size = 0;
             if(rep[i][i] == true){ //it is the rep
                 int farthest_point_idx = -1;
                 double norm_max_dist = 0.0;
@@ -119,8 +134,8 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
                 //for each member point of representative
                 for(int t = 0 ; t < data_size ; t++)
                 {
-                    if (rep[i][t] == true){ //it belongs to rep, but not rep
-                        rep_size += 1
+                    if (rep[i][t] == true){ //it belongs to rep
+                        rep_size += 1;
                         double current_distance = dis_to_rep[t];
                         if (current_distance > norm_max_dist)
                         {
@@ -129,7 +144,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
                         }
                         //reset representative after calculating
                         if(i != t){ //if it is not itself
-                            rep[i][t] = false
+                            rep[i][t] = false;
                         }
                     }
                 }
@@ -148,7 +163,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
         }
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
         //step 2: add new point as the representative
-        rep[the_lion_king][the_lion_king] = true
+        rep[the_lion_king][the_lion_king] = true;
         dis_to_rep[the_lion_king] = 0.0;
 
         //Step 3: Find group for each representative
@@ -164,19 +179,19 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
                 {
                     if(rep[t][t] == true) //is a rep
                     { 
-                        double distance = get_distance(c_coord, distance_map, i, t, cal_mode);
+                        double distance = _get_distance(c_coord, distance_map, i, t, dim);
                         if (distance < norm_min_dist)
                         {
                             norm_min_dist = distance;
-                            rep_idx = t
+                            rep_idx = t;
                         }
                     }
                 }
                 //add index of point to representative
-                rep[rep_idx][i] = true
+                rep[rep_idx][i] = true;
                 if (cal_mode == "memory_based")
                 {
-                    set_distance(distance_map, i, rep_idx, norm_min_dist);
+                    _set_distance(distance_map, i, rep_idx, norm_min_dist);
                 }
                 dis_to_rep[i] = norm_min_dist;
             }
@@ -184,24 +199,26 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, double epsilon,
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         std::cout << cost << "\n";
-    } while (cost > epsilon && coreset_indices.size() < data_size);
-}
+        coreset_size += 1;
+    } while (cost > epsilon && coreset_size < data_size);
 
-boost::python::list _ProTraS::get_coreset_indices(){
-    return this->py_coreset_indices;
-}
+    //parse result back to parameter
+    py_dis_to_rep = boost::python::list();
+    py_rep_set = boost::python::dict();
 
-boost::python::dict _ProTraS::get_rep()
-{
-    return this->py_rep;
-}
-
-boost::python::dict _ProTraS::get_dis_to_rep()
-{
-    return this->py_dis_to_rep;
-}
-
-boost::python::dict _ProTraS::get_rep_set()
-{
-    return this->py_rep_set;
+    for(int i = 0 ; i < data_size ; i++){
+        py_dis_to_rep.append(dis_to_rep[i]);
+    }
+    for(int x = 0 ; x < data_size ; x++){
+        if(rep[x][x] == true){ //line of rep
+            py_rep_set[x] = boost::python::list();
+            boost::python::list holder;
+            for(int y = 0 ; y < data_size ; y++){
+                if(rep[x][y] == true){
+                    holder.append(y);
+                }
+                py_rep_set[x] = holder;
+            }
+        }
+    }
 }

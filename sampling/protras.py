@@ -30,5 +30,7 @@ class ProTraS(SamplingAlgorithm):
         matrix = dataset[self._coord_col].apply(lambda x : ast.literal_eval(x))
         #create C++ _ProTraS
         c_protras = _ProTraS()
-        c_protras.run_protras(matrix, self._epsilon, "memory-based")
+        py_dist_to_rep = {}
+        py_rep_set = []
+        c_protras.run_protras(matrix, py_dist_to_rep, py_rep_set)
         return c_protras
