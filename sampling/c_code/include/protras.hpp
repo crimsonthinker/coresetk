@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <map>
 #include <vector>
 #include <string>
 #include <set>
@@ -11,14 +10,12 @@
 #include <math.h>
 #include <limits>
 
-typedef std::vector<double> Point;
-typedef std::vector<int> Indices;
-typedef std::set<int> IndicesSet;
-typedef std::map<int, int> Rep;
-typedef std::map<int, double> DisToRep;
-typedef std::map<int, Point> Coord;
-typedef std::map<int, std::map<int, double>> DistanceMap;
-typedef std::map<int, IndicesSet> RepSet;
+typedef std::set<int> ISet;
+typedef std::vector<double> FPoint;
+typedef std::vector<int> IPoint;
+typedef std::vector<bool> BPoint;
+typedef std::vector<FPoint> FMatrix;
+typedef std::vector<Marker> BMatrix;
 
 class _ProTraS
 {
@@ -26,11 +23,13 @@ class _ProTraS
         boost::python::dict py_rep;
         boost::python::dict py_dis_to_rep;
         boost::python::dict py_rep_set;
-        double tmp_euclide_distance(boost::python::list &p1, boost::python::list &p2);
-        double get_distance(boost::python::dict &coord, DistanceMap &distance_map, int d1, int d2, std::string cal_mode);
-        void set_distance(DistanceMap &distance_map, int d1, int d2, double distance_value);
+        boost::python::list py_coreset_indices;
+        double tmp_euclide_distance(Point&, Point&);
+        double get_distance(Coord&, DistanceMap&, int, int, std::string);
+        void set_distance(DistanceMap &, int, int, double);
     public:
-        void run_protras(boost::python::dict &coord, double epsilon, std::string cal_mode);
+        void run_protras(boost::python::list&, double, std::string);
+        boost::python::list get_coreset_indices();
         boost::python::dict get_rep();
         boost::python::dict get_dis_to_rep();
         boost::python::dict get_rep_set();

@@ -26,12 +26,9 @@ class ProTraS(SamplingAlgorithm):
         """
         #deepcopy
         dataset = d.copy()
-        #convert coord column to list
-        dataset[self._coord_col] = dataset[self._coord_col].apply(lambda x : ast.literal_eval(x))
-        #extract dictionary with key = index, coord = list
-        data = dict(zip(dataset[self._index_col],dataset[self._coord_col]))
+        #convert coord column to a (dxn) matrix
+        matrix = dataset[self._coord_col].apply(lambda x : ast.literal_eval(x))
         #create C++ _ProTraS
         c_protras = _ProTraS()
-        c_protras.run_protras(data, self._epsilon, "memory-based")
-        import pdb ; pdb.set_trace()
-        #update gained information to pandas
+        c_protras.run_protras(matrix, self._epsilon, "memory-based")
+        return c_protras

@@ -1,23 +1,16 @@
-#include<protras.hpp>
+#include <protras.hpp>
 
-double _ProTraS::tmp_euclide_distance(boost::python::list &p1, boost::python::list &p2)
+double _ProTraS::tmp_euclide_distance(Point &p1, Point &p2)
 {
     double res = 0.0;
-    for (int i = 0; i < boost::python::len(p1); i++)
+    for (int i = 0; i < p1.size(); i++)
     {
-        //check key is string
-        boost::python::extract<double> extractor_1(p1[i]);
-        boost::python::extract<double> extractor_2(p1[i]);
-        if (extractor_1.check() && extractor_2.check()){
-            double v1 = extractor_1();
-            double v2 = extractor_2();
-            res += pow(v1 - v2, 2);
-        }
+        res += pow(p1[i] - p2[i], 2);
     }
     return sqrt(res);
 }
 
-double _ProTraS::get_distance(boost::python::dict &coord, DistanceMap &distance_map, int d1, int d2, std::string cal_mode)
+double _ProTraS::get_distance(Coord &c_coord, DistanceMap &distance_map, int d1, int d2, std::string cal_mode)
 {
     if (cal_mode == "memory-based")
     {
@@ -33,30 +26,13 @@ double _ProTraS::get_distance(boost::python::dict &coord, DistanceMap &distance_
             first = d2;
             second = d1 - d2;
         }
-        if (distance_map.find(first) == distance_map.end())
-        {
-            distance_map[first] = std::map<int, double>();
-        }
-        boost::python::extract<boost::python::list> extractor_1(coord[first]);
-        boost::python::extract<boost::python::list> extractor_2(coord[second]);
-        if (extractor_1.check() && extractor_2.check()){
-            boost::python::list l1 = extractor_1();
-            boost::python::list l2 = extractor_2();
-            distance_map[first][second] = tmp_euclide_distance(l1,l2);
-        }
+        float distance = tmp_euclide_distance(c_coord[first], c_coord[second]);
+        distance_map[first][second] = tmp;
         return distance_map[first][second];
     }
     else
     {
-        boost::python::extract<boost::python::list> extractor_1(coord[d1]);
-        boost::python::extract<boost::python::list> extractor_2(coord[d2]);
-        if (extractor_1.check() && extractor_2.check()){
-            boost::python::list l1 = extractor_1();
-            boost::python::list l2 = extractor_2();
-            return tmp_euclide_distance(l1, l2);
-        }
-        return 0.0;
-        
+        return tmp_euclide_distance(c_coord[d1], c_coord[d2]);
     }
 }
 
@@ -74,73 +50,84 @@ void _ProTraS::set_distance(DistanceMap &distance_map, int d1, int d2, double di
         first = d2;
         second = d1 - d2;
     }
-    if (distance_map.find(first) == distance_map.end())
-    {
-        //initialize
-        distance_map[first] = std::map<int, double>();
-    }
     distance_map[first][second] = distance_value;
 }
 
-void _ProTraS::run_protras(boost::python::dict &coord, double epsilon, std::string cal_mode)
+void _ProTraS::run_protras(boost::python::list &coord, double epsilon, std::string cal_mode)
 {
-    DistanceMap distance_map;
-    DisToRep dis_to_rep;
-    Rep rep;
-    Indices coreset_indices;
-
-    RepSet rep_set;
-    //initialize points: 0
-    int initial_point_index = 0;
-
-    rep[initial_point_index] = initial_point_index;
-
-    rep_set[initial_point_index];
-    rep_set[initial_point_index].insert(initial_point_index);
-
-    distance_map[initial_point_index] = std::map<int, double>();
-    distance_map[initial_point_index][initial_point_index] = 0.0;
-
-    coreset_indices.push_back(initial_point_index);
     int data_size = boost::python::len(coord);
+
+    FMatrix distance_map;
+    FPoint dis_to_rep = FPoint(-1.0, data_size);
+    BMatrix rep = IPoint(-1, data_size);
+    Marker coreset_indices = Marker(false,data_size);
+    FMatrix c_coord = Coord();
+
+    if (cal_mode == "memory-based"){
+        distance_map = DistanceMap(-1.0,data_size);
+    }
+
+    //convert boost::python::list to Coord
+    for (ssize_t i = 0; i < boost::python::len(coord); i++)
+    {
+
+        boost::python::extract<boost::python::list> extractor_point(coord[i]);
+        if (extractor_point.check())
+        {
+            boost::python::list point = extractor_point();
+            c_coord[key] = Point();
+            for (ssize_t t = 0; t < boost::python::len(l); t++)
+            {
+                //check key is string
+                boost::python::extract<float> extractor_float(l[t]);
+                if (extractor_float.check())
+                {
+                    float f = extractor_float();
+                    c_coord[key].push_back(f);
+                }
+            }
+        }
+    }
     double max_length = 0.0;
 
-    boost::python::list keys = boost::python::list(coord.keys());
+    //initialize variables
+    if (cal_mode == "memory-based"){
+        for(int i = data_size - 1 ; i >= 0 ; i--){
+            distance_map.push_back(Point(-1.0,i));
+        }
+    }
+
+
+    //initialize points: 0
+    int initial_point_index = 0;
+    rep[initial_point_index] = true;
+    rep_set[initial_point_index][initial_point_index] = true;
+    set_distance(distance_map, initial_point_index, initial_point_index, 0.0);
+    coreset_indices[initial_point_index] = true
+
     //find maximum distance
-    for (ssize_t i = 0; i < boost::python::len(keys); i++)
+    for (auto const &x : c_coord)
     {
-        //check key is string
-        boost::python::extract<int> extractor(keys[i]);
-        if (extractor.check())
+        float distance = get_distance(c_coord, distance_map, initial_point_index, x.first, cal_mode);
+        if (distance > max_length)
         {
-            int key = extractor();
-            float distance = get_distance(coord, distance_map, initial_point_index, key, cal_mode);
-            if (distance > max_length)
-            {
-                max_length = distance;
-            }
+            max_length = distance;
         }
     }
 
     //initialize representative
-    for (ssize_t i = 0; i < boost::python::len(keys); i++)
+    for (auto const &x : c_coord)
     {
-        //check key is string
-        boost::python::extract<int> extractor(keys[i]);
-        if (extractor.check())
+        rep[x.first] = initial_point_index;
+        if (x.first != initial_point_index)
         {
-            int key = extractor();
-            rep[key] = initial_point_index;
-            if (key != initial_point_index)
-            {
-                rep_set[initial_point_index].insert(key);
-                double distance = get_distance(coord, distance_map, initial_point_index, key, cal_mode);
-                dis_to_rep[key] = distance;
-            }
-            else
-            {
-                dis_to_rep[key] = 0.0;
-            }
+            rep_set[initial_point_index].push_back(x.first);
+            double distance = get_distance(c_coord, distance_map, initial_point_index, x.first, cal_mode);
+            dis_to_rep[x.first] = distance;
+        }
+        else
+        {
+            dis_to_rep[x.first] = 0.0;
         }
     }
     /****************************************************************************/
@@ -179,15 +166,15 @@ void _ProTraS::run_protras(boost::python::dict &coord, double epsilon, std::stri
                 largest_cost_rep_idx = x.first;
             }
 
-            cost += (pk / data_size * max_length);
+            cost += (pk / (data_size * max_length));
         }
         ///////////////////////////////////////////////////////////////////////////////////////////////////////////
         //step 2: add new point to the group
-        std::cout << the_lion_king << "\n";
         rep_set[the_lion_king] = IndicesSet();
-        rep_set[the_lion_king].insert(the_lion_king);
-        distance_map[the_lion_king] = std::map<int, double>();
-        distance_map[the_lion_king][the_lion_king] = 0.0;
+        rep_set[the_lion_king].push_back(the_lion_king);
+        if (cal_mode == "memory-based"){
+            set_distance(distance_map, the_lion_king, the_lion_king, 0.0);
+        }
         rep[the_lion_king] = the_lion_king;
         dis_to_rep[the_lion_king] = 0.0;
 
@@ -195,76 +182,86 @@ void _ProTraS::run_protras(boost::python::dict &coord, double epsilon, std::stri
         for (const auto &x : rep_set)
         {
             rep_set[x.first].clear();
-            rep_set[x.first].insert(x.first);
+            rep_set[x.first].reserve(data_size);
+            rep_set[x.first].push_back(x.first);
         }
 
         //Step 4: Find group for each representative
         //For each DataPoint
-        boost::python::list keys = boost::python::list(coord.keys());
-        for (ssize_t i = 0; i < boost::python::len(keys); i++)
+        for (auto const &x : c_coord)
         {
-            //check key is int
-            boost::python::extract<int> extractor(keys[i]);
-            if (extractor.check())
+            if (rep_set.find(x.first) == rep_set.end())
             {
-                int key = extractor();
-                if (rep_set.find(key) == rep_set.end())
+                double norm_min_dist = std::numeric_limits<double>::max();
+                int rep_idx = -1;
+                //for each representative
+                for (const auto &r : rep_set)
                 {
-                    double norm_min_dist = std::numeric_limits<double>::max();
-                    int rep_idx = -1;
-                    //for each representative
-                    for (const auto &r : rep_set)
+                    //find distance
+                    double distance = get_distance(c_coord, distance_map, x.first, r.first, cal_mode);
+                    if (distance < norm_min_dist)
                     {
-                        //find distance
-                        double distance = get_distance(coord, distance_map, key, r.first, cal_mode);
-                        if (distance < norm_min_dist)
-                        {
-                            norm_min_dist = distance;
-                            rep_idx = r.first;
-                        }
+                        norm_min_dist = distance;
+                        rep_idx = r.first;
                     }
-                    //add index of point to representative
-                    rep_set[rep_idx].insert(key);
-                    if (cal_mode == "memory_based")
-                    {
-                        set_distance(distance_map, key, rep_idx, norm_min_dist);
-                    }
-                    rep[key] = rep_idx;
-                    dis_to_rep[key] = norm_min_dist;
                 }
+                //add index of point to representative
+                rep_set[rep_idx].push_back(x.first);
+                if (cal_mode == "memory_based")
+                {
+                    set_distance(distance_map, x.first, rep_idx, norm_min_dist);
+                }
+                rep[x.first] = rep_idx;
+                dis_to_rep[x.first] = norm_min_dist;
             }
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////////////////
         //Step 5: Add new representative - new member of coreset - THE LION KING - to variables
         coreset_indices.push_back(the_lion_king);
+        std::cout << cost << "\n";
     } while (cost > epsilon && coreset_indices.size() < data_size);
 
     //convert to python objects
     //py_rep
-    for (auto const& x: rep){
+    for (auto const &x : rep)
+    {
         this->py_rep[x.first] = x.second;
     }
-    for (auto const& x: dis_to_rep){
+    for (auto const &x : dis_to_rep)
+    {
         this->py_dis_to_rep[x.first] = x.second;
     }
-    for(auto const& x: rep_set){
+    for (auto const &x : rep_set)
+    {
         boost::python::list tmp;
-        for(auto v : x.second){
+        for (auto v : x.second)
+        {
             tmp.append(v);
         }
         this->py_rep_set[x.first] = tmp;
     }
+    for (auto const &x : coreset_indices)
+    {
+        this->py_coreset_indices.append(x);
+    }
 }
 
-boost::python::dict _ProTraS::get_rep(){
-    return this->py_rep;
-}
+    boost::python::list _ProTraS::get_coreset_indices(){
+        return this->py_coreset_indices;
+    }
 
-boost::python::dict _ProTraS::get_dis_to_rep(){
-    return this->py_dis_to_rep;
-}
+    boost::python::dict _ProTraS::get_rep()
+    {
+        return this->py_rep;
+    }
 
-boost::python::dict _ProTraS::get_rep_set(){
-    return this->py_rep_set;
-}
+    boost::python::dict _ProTraS::get_dis_to_rep()
+    {
+        return this->py_dis_to_rep;
+    }
+
+    boost::python::dict _ProTraS::get_rep_set()
+    {
+        return this->py_rep_set;
+    }

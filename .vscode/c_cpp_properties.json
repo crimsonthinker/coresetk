@@ -3,7 +3,7 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
                 "${workspaceFolder}/sampling/c_code/include"
             ],
             "defines": [],
