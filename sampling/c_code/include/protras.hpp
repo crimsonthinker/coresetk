@@ -9,19 +9,11 @@
 #include <boost/python.hpp>
 #include <math.h>
 #include <limits>
-
-typedef std::set<int> ISet;
-typedef std::vector<double> FPoint;
-typedef std::vector<int> IPoint;
-typedef std::vector<bool> BPoint;
-typedef std::vector<FPoint> FMatrix;
-typedef std::vector<Marker> BMatrix;
-
+#include <boost/python/numpy.hpp>
 class _ProTraS
 {
     private:
-        boost::python::dict py_rep;
-        boost::python::dict py_dis_to_rep;
+        boost::python::list py_dis_to_rep;
         boost::python::dict py_rep_set;
         boost::python::list py_coreset_indices;
         double tmp_euclide_distance(Point&, Point&);

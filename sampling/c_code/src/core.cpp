@@ -4,6 +4,7 @@
 BOOST_PYTHON_MODULE(core)
 {
     Py_Initialize();
+    boost::python::numpy::initialize();
 
     boost::python::class_<_ProTraS>("_ProTraS")
         .def("run_protras", &_ProTraS::run_protras)
