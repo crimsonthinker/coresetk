@@ -10,8 +10,9 @@
 #include <math.h>
 #include <limits>
 #include <boost/python/numpy.hpp>
+#include <protras.hpp>
 
-class _ProTraS
+class _ModificationProTraS : private _ProTraS
 {
     private:
         boost::python::list py_dis_to_rep;

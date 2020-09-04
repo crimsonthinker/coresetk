@@ -1,0 +1,43 @@
+streamInterval: 120
+
+kafka:
+  brokers: localhost:9092
+  topics:
+    - collection-of-tweets
+    - collection-of-users
+    - visual
+  group: KK
+
+twitter_key:
+  access_token: 571546287-PGnGXtV3qUB57MCO3AuvwfpIaeHyZykk1OwufNgN
+  access_token_secret: GBoECIPSVCZdLcZxfj7uE5E5gWxOAykST5nZoljUQTrue
+  api_key: zIVkuqjOclduzFA9tPIyrdziw
+  api_key_secret: XViCvrxHYU3DJ1aqeKFjasj5D0uHduvAP6EsbT0hfzDLVFtETr
+
+mongodb:
+  host: localhost:27017
+  database: twitter
+  collection_raw: twitter_tweet
+  collection_etl: tweet_log
+  collection_streaming: twitter_streaming
+
+mongodb_config:
+  twitter:
+    host: localhost
+    port: 27017
+    database: twitter
+
+redis:
+  redis_avatlite:
+    host: localhost
+    port: 6379
+    database: 0
+  redis_visual:
+    host: localhost
+    port: 6379
+    database: 1
+  redis_3d_visual:
+    host: localhost
+    port: 6379
+    database: 2
+
