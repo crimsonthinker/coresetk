@@ -22,6 +22,9 @@ class SamplingAlgorithm(PipelineOperator, ABC):
     def set_distance_function(self, new_dis_func):
         pass
 
+    def set_percentage(self, new_percentage):
+        pass
+
     def set_sampling_mode(self, mode):
         pass
 

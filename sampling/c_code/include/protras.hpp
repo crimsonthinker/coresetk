@@ -10,6 +10,7 @@
 #include <math.h>
 #include <limits>
 #include <boost/python/numpy.hpp>
+
 class _ProTraS
 {
     private:
