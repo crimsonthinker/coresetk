@@ -71,7 +71,7 @@ class MyStreamListener(tweepy.StreamListener):
 
 class Producer(BaseContext):
     def __init__(self, app_name):
-        super(app_name)
+        super().__init__(app_name)
         self.conf.set("spark.ui.port", "9050")
         self.conf.set("spark.executor.memory", "2g")
 
@@ -83,7 +83,7 @@ class Producer(BaseContext):
 
 class _TweetProducer(Producer):
     def __init__(self, app_name, file_core):
-        super(app_name)
+        super().__init__(app_name)
         self._file_core = file_core
         self._norm_time = udf(normalize_datetime, StringType())
         self._text_processing = udf(text_processing, StringType())
@@ -105,6 +105,12 @@ class _TweetProducer(Producer):
                 .withColumn("ymd", substring(col("tweetTime"), 0, 10))\
                 .withColumn("tweetID", col("id").cast(LongType()))\
                 .drop("id").drop("tweetTime")
+
+            prepare_dataset = self.further_etl(data_raw, "TweetPoint")
+
+            return prepare_dataset
+
+        return None
 
     def further_etl(self, data, datatype, mode = "test"):
         consider_attribute = ["tweetID","text","createdAt","user.id","user.name","user.friendsCount","user.followersCount","user.favouritesCount"]
@@ -156,10 +162,8 @@ class _TweetProducer(Producer):
         
         print("========== START GETTING DATA AT " + datetime.now() + " ==========")
         while True:
-            new_tweet = tweet_stream.filter(languages=["en"])
-            if new_tweet is not None:
-                # do streaming process
-                pass
+            tweet_stream.filter(languages=["en"])
+            # TODO: do streaming process
         
 
 if __name__ == "__main__":

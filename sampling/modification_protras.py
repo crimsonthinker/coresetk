@@ -5,6 +5,9 @@ import ast
 
 class ModificationProTraS(ProTraS):
 
+    def __init__(self, coord_col = 'coord',index_col = 'index', *args):
+        super().__init__(coord_col, index_col, args)
+
     def set_distance_function(self, distance_function):
         self._distance_function = distance_function
         return self

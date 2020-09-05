@@ -26,10 +26,11 @@ float _ProTraS::_get_distance(float **c_coord, float **distance_map, int d1, int
             first = d2;
             second = d1 - d2;
         }
-        if (distance_map[first][second] < 0.0){
+        if (distance_map[first][second] < 0.0)
+        {
             float distance = _euclide_distance(c_coord[d1], c_coord[d2], dim);
             distance_map[first][second] = distance;
-        } 
+        }
         return distance_map[first][second];
     }
     else
@@ -55,53 +56,60 @@ void _ProTraS::_set_distance(float **distance_map, int d1, int d2, float distanc
     distance_map[first][second] = distance_value;
 }
 
-void _ProTraS::set_eps(float eps){
+void _ProTraS::set_eps(float eps)
+{
     epsilon = eps;
 }
 
-void _ProTraS::set_cal_mode(std::string mode){
-    if(mode != "memory-based" && mode != "ram-based"){
+void _ProTraS::set_cal_mode(std::string mode)
+{
+    if (mode != "memory-based" && mode != "ram-based")
+    {
         std::cout << "Unknown calculation mode: Choosing default";
         this->cal_mode = "ram-based";
-    }else{
+    }
+    else
+    {
         this->cal_mode = mode;
     }
 }
 
-void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, 
-                            boost::python::list &py_dis_to_rep,
-                            boost::python::dict &py_rep_set)
+void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
+                           boost::python::list &py_dis_to_rep,
+                           boost::python::dict &py_rep_set)
 {
     //Get shape of data
     int data_size = coord.shape(0);
     int dim = coord.shape(1);
 
     //convert coord to C++ matrix
-    float** c_coord = reinterpret_cast<float**>(coord.get_data());
+    float **c_coord = reinterpret_cast<float **>(coord.get_data());
 
     //initialize supporting variable
     float **distance_map;
-    if(this->cal_mode == "memory-based"){
-        distance_map = new float*[data_size];
+    if (this->cal_mode == "memory-based")
+    {
+        distance_map = new float *[data_size];
     }
-    bool **rep = new bool*[data_size];
+    bool **rep = new bool *[data_size];
     float *dis_to_rep = new float[data_size];
-    for(int i = 0 ; i < data_size ; i++){
-        if (this->cal_mode == "memory-based"){
+    for (int i = 0; i < data_size; i++)
+    {
+        if (this->cal_mode == "memory-based")
+        {
             distance_map[i] = new float[data_size - i]{-1.0};
         }
         rep[i] = new bool[data_size];
         dis_to_rep[i] = -1.0;
     }
-    
+
     //initialize points: 0
     int initial_point_index = 0;
-    
 
     //initialize representative
     double max_length = 0.0;
     rep[initial_point_index][initial_point_index] = true;
-    for(int i = 0 ; i < data_size ; i++)
+    for (int i = 0; i < data_size; i++)
     {
         rep[initial_point_index][i] = true;
         float distance = _get_distance(c_coord, distance_map, initial_point_index, i, dim);
@@ -124,17 +132,19 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
         double max_distance = 0.0;
         int largest_cost_rep_idx = 0;
         //for each representative
-        for(int i = 0 ; i < data_size ; i++)
+        for (int i = 0; i < data_size; i++)
         {
             int rep_size = 0;
-            if(rep[i][i] == true){ //it is the rep
+            if (rep[i][i] == true)
+            { //it is the rep
                 int farthest_point_idx = -1;
                 double norm_max_dist = 0.0;
 
                 //for each member point of representative
-                for(int t = 0 ; t < data_size ; t++)
+                for (int t = 0; t < data_size; t++)
                 {
-                    if (rep[i][t] == true){ //it belongs to rep
+                    if (rep[i][t] == true)
+                    { //it belongs to rep
                         rep_size += 1;
                         double current_distance = dis_to_rep[t];
                         if (current_distance > norm_max_dist)
@@ -143,7 +153,8 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
                             farthest_point_idx = t;
                         }
                         //reset representative after calculating
-                        if(i != t){ //if it is not itself
+                        if (i != t)
+                        { //if it is not itself
                             rep[i][t] = false;
                         }
                     }
@@ -168,17 +179,17 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
 
         //Step 3: Find group for each representative
         //For each DataPoint
-        for(int i = 0 ; i < data_size ; i++)
+        for (int i = 0; i < data_size; i++)
         {
             if (rep[i][i] == false) //not a rep
             {
                 double norm_min_dist = std::numeric_limits<double>::max();
                 int rep_idx = -1;
                 //for each representative
-                for(int t = 0 ; t < data_size ; t++)
+                for (int t = 0; t < data_size; t++)
                 {
-                    if(rep[t][t] == true) //is a rep
-                    { 
+                    if (rep[t][t] == true) //is a rep
+                    {
                         double distance = _get_distance(c_coord, distance_map, i, t, dim);
                         if (distance < norm_min_dist)
                         {
@@ -206,15 +217,20 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
     py_dis_to_rep = boost::python::list();
     py_rep_set = boost::python::dict();
 
-    for(int i = 0 ; i < data_size ; i++){
+    for (int i = 0; i < data_size; i++)
+    {
         py_dis_to_rep.append(dis_to_rep[i]);
     }
-    for(int x = 0 ; x < data_size ; x++){
-        if(rep[x][x] == true){ //line of rep
+    for (int x = 0; x < data_size; x++)
+    {
+        if (rep[x][x] == true)
+        { //line of rep
             py_rep_set[x] = boost::python::list();
             boost::python::list holder;
-            for(int y = 0 ; y < data_size ; y++){
-                if(rep[x][y] == true){
+            for (int y = 0; y < data_size; y++)
+            {
+                if (rep[x][y] == true)
+                {
                     holder.append(y);
                 }
                 py_rep_set[x] = holder;
