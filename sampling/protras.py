@@ -2,6 +2,7 @@ from sampling.sampling_algorithm import SamplingAlgorithm
 from sampling.__c__.core import _ProTraS
 import pandas as pd
 import ast
+import numpy as np
 
 
 class ProTraS(SamplingAlgorithm):
@@ -27,10 +28,11 @@ class ProTraS(SamplingAlgorithm):
         #deepcopy
         dataset = d.copy()
         #convert coord column to a (dxn) matrix
-        matrix = dataset[self._coord_col].apply(lambda x : ast.literal_eval(x))
+        matrix = np.array(dataset[self._coord_col].apply(lambda x : ast.literal_eval(x)).tolist())
         #create C++ _ProTraS
         c_protras = _ProTraS()
-        py_dist_to_rep = {}
-        py_rep_set = []
+        c_protras.set_eps(self._epsilon)
+        py_dist_to_rep = [] #placeholder
+        py_rep_set = {} #placeholder
         c_protras.run_protras(matrix, py_dist_to_rep, py_rep_set)
         return c_protras
