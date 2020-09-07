@@ -30,7 +30,11 @@ class ProTraS(SamplingAlgorithm):
         matrix = dataset[self._coord_col].apply(lambda x : ast.literal_eval(x))
         #create C++ _ProTraS
         c_protras = _ProTraS()
-        py_dist_to_rep = {}
-        py_rep_set = []
+        py_dist_to_rep = []
+        py_rep_set = {}
         c_protras.run_protras(matrix, py_dist_to_rep, py_rep_set)
+
+        # wait, dude, what has been returned ?
+        # return a C class ?
+        # what do you mean ?
         return c_protras

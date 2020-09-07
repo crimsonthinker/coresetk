@@ -237,4 +237,4 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
             }
         }
     }
-}
+} 

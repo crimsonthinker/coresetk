@@ -18,6 +18,8 @@ class SamplingAlgorithm(PipelineOperator, ABC):
         self._percentage = percentage
         self._epsilon = epsilon
         self._sampling_mode = sampling_mode
+        self._sampling_phase = sampling_phase
+        self._representative = {}
 
     def set_distance_function(self, new_dis_func):
         pass
@@ -60,6 +62,9 @@ class SamplingAlgorithm(PipelineOperator, ABC):
 
     @abstractmethod
     def fit(self, dataset):
+        pass
+
+    def read_representative(self, dataset):
         pass
 
     def process(self, dataset):

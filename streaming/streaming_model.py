@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 class StreamingModel:
+    
     def __init__(self, distance_function):
         self.rank_list = []
         self.coreset0 = None
@@ -34,21 +35,21 @@ class StreamingModel:
         self.mp = ModificationProTraS("coord","index", tmp_arg)
         # TODO: vat
 
+    def delete_initial_cluster_file(self):
+        os.remove("./result/initial_cluster/data/" + self.file_core + "/" + self.file_core + "_v1_origin.csv")
+
     def set_target_file(self, new_file_core):
         print("Target Streaming file set")
         self.file_core = new_file_core
         self.globalOrder = 0
 
-        self.delete_initial_cluster_file()
+        self.delete_initial_cluster_file()    
 
-    def delete_initial_cluster_file():
-        os.remove("./result/initial_cluster/data/" + self.file_core + "/" + self.file_core + "_v1_origin.csv")
-
-    def check_consecutive_rank(start_rank):
+    def check_consecutive_rank(self, start_rank):
         sort_rank_list = list(set(sorted(self.rank_list)))
         end_rank = start_rank
         stop = False
-        for j in range(sort_rank_list.index(start_rank), length(sort_rank_list) - 1):
+        for j in range(sort_rank_list.index(start_rank), len(sort_rank_list) - 1):
             if sort_rank_list[j + 1] != sort_rank_list[j + 1]:
                 end_rank = sort_rank_list[j]
                 stop = True
@@ -59,18 +60,18 @@ class StreamingModel:
         
         return end_rank
 
-    def set_batch_size(new_coordinate):
+    def set_batch_size(self, new_coordinate):
         self.coordinate = new_coordinate
         self.remaining_rank_zero_size = new_coordinate
 
-    def parse_data_streaming(dataset: pd.DataFrame):
+    def parse_data_streaming(self, dataset: pd.DataFrame):
         print(self.remaining_rank_zero_size)
         self._parse_data_streaming(dataset)
 
-    def _parse_data_streaming(dataset: pd.DataFrame):
+    def _parse_data_streaming(self, dataset: pd.DataFrame):
         self.file_core = ""
 
-        batch_data_size = length(dataset)
+        batch_data_size = len(dataset)
 
         # 1st circumstance: real-time batch < remaining buffer
         if batch_data_size < self.remaining_rank_zero_size:
@@ -106,7 +107,7 @@ class StreamingModel:
 
             self._parse_data_streaming(next_dataset)
 
-    def create_coreset(dataset: pd.DataFrame):
+    def create_coreset(self, dataset: pd.DataFrame):
         dataset_size = dataset.size()
         new_dataset = dataset
 
@@ -139,6 +140,26 @@ class StreamingModel:
                 end_rank = self.check_consecutive_rank(duplicate_rank[i])
                 all_coreset_merge = self.coreset1
 
-                if all_coreset_merge:
+                if self.merged_group_coreset:
                     for x in range(end_rank):
                         all_coreset_merge = pd.concat(all_coreset_merge, self.merged_group_coreset[x])
+                        self.merged_group_coreset[x] = pd.DataFrame()
+
+                if len(self.merged_group_coreset) == end_rank:
+                    self.rank_list = list(end_rank + 1)
+                    self.merged_group_coreset.append(all_coreset_merge)
+                elif len(self.merged_group_coreset) > end_rank:
+                    self.rank_list.append(end_rank + 1)
+                    self.rank_list = list(filter(lambda x: x > end_rank, self.rank_list))
+                    self.merged_group_coreset[end_rank] = all_coreset_merge
+        elif len(self.rank_list) == 1 and self.rank_list[0] == 1:
+            self.merged_group_coreset = list(self.coreset1)
+        else:
+            self.merged_group_coreset[0] = self.coreset1
+
+        cumulative_coreset = self.merged_group_coreset[0]
+        for i in range(1, len(self.merged_group_coreset)):
+            cumulative_coreset = pd.concat([cumulative_coreset, self.merged_group_coreset[i]])
+        cumulative_coreset = pd.concat([cumulative_coreset, self.coreset0])
+
+        self.cumulative_dataset = cumulative_coreset
