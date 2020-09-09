@@ -6,6 +6,7 @@ struct kv {
     std::string key = "";
     int value_size = -1;
     T *value = new T;
+    int *index = new int;
 };
 
 template <class T>
@@ -25,7 +26,26 @@ struct Dict {
     return NULL;
   }
 
+  int get_value_size(std::string key) {
+    for (int i = 0; i < this->size; i++) {
+      if (this->dictionary[i].key == key) {
+        return this->dictionary[i].value_size;
+      }
+    }
+    return -1;
+  }
+
 	kv<T> &find(std::string key) {
+    for (int i = 0; i < this->size; i++) {
+      if (this->dictionary[i].key == key) {
+        return this->dictionary[i];
+      }
+    }
+
+    return this->empty;
+  }
+
+  kv<T> get(std::string key) {
     for (int i = 0; i < this->size; i++) {
       if (this->dictionary[i].key == key) {
         return this->dictionary[i];
@@ -41,22 +61,24 @@ struct Dict {
     this->size++;
   }
 
-	void append(std::string key, int new_value_size, T *value) {
+	void append(std::string key, int new_value_size, T *value, int *index) {
 		kv<T> new_kv;
 		new_kv.key = key;
 		new_kv.value_size = new_value_size;
 		new_kv.value = value;
+    new_kv.index = index;
 
     *(this->dictionary + this->size) = new_kv;
     std::cout << "Appended" << std::endl;
     this->size++;
   }
 
-  void update_key(std::string key, int new_value_size, T *value) {
+  void update_key(std::string key, int new_value_size, T *value, int *index) {
     kv<T> &update_value = this->find(key);
 
     if (update_value.value_size != -1) {
       update_value.value = value;
+      update_value.index = index;
 		  update_value.value_size = new_value_size;
 
       std::cout << "Updated" << std::endl;

@@ -93,7 +93,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
     }
     bool **rep = new bool *[data_size];
     float *dis_to_rep = new float[data_size];
-    for (int i = 0; i < data_size; i++)
+    for (int i = 0; i < data_size; i++)_ModificationProTraS::_ModificationProTraS::
     {
         if (this->cal_mode == "memory-based")
         {
