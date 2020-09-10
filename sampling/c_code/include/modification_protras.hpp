@@ -15,12 +15,13 @@
 class _ModificationProTraS : private _ProTraS
 {
     private:
-        float percentage = 0.5;
+        float percentage = 0.5;c
         float* _make_vector(float **, int, int, int);
         float _get_cosine(float **, float **, int, int, int, int);
         float _cosine_angle(float *, float *, int);
     
     public:
-        void run_modification_protras(boost::python::list&, boost::python::list&, boost::python::numpy::ndarray&);
+        void set_percentage(float);
+        void run_modification_protras(bp::dict&, bp::dict&, bp::list&, bp::list&, bp::numpy::ndarray&);
 };
 

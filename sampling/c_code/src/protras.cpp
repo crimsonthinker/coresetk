@@ -220,6 +220,7 @@ void _ProTraS::run_protras(boost::python::numpy::ndarray &coord,
     for (int i = 0; i < data_size; i++)
     {
         py_dis_to_rep.append(dis_to_rep[i]);
+        
     }
     for (int x = 0; x < data_size; x++)
     {

@@ -61,8 +61,11 @@ float _ModificationProTraS::_get_cosine(float **c_coord, float **distance_map, i
     return _cosine_angle(first_vector, second_vector, dim);
 }
 
-void _ModificationProTraS::run_modification_protras(bp
-                                                    : dict &py_rep_set, bp::dict &coreset_index, bp::list &substituted_list, bp::numpy::ndarray &coord)
+void _ModificationProTraS::set_percentage(float new_percentage) {
+    this->percentage = new_percentage;
+}
+
+void _ModificationProTraS::run_modification_protras(bp::dict &py_rep_set, bp::dict &coreset_index, bp::list &py_dis_to_rep, bp::list &substituted_list, bp::numpy::ndarray &coord)
 {
     int data_size = coord.shape(0);
     int dim = coord.shape(1);
@@ -89,7 +92,6 @@ void _ModificationProTraS::run_modification_protras(bp
     int *unsubstituted_list = new int[current_coreset_size];
     int *subs_list = new int;
     int subs_list_size = 0;
-    int unsubs_list_size = representative_size;
 
     for (int i = 0; i < representative_size; i++)
     {
@@ -229,14 +231,38 @@ void _ModificationProTraS::run_modification_protras(bp
                 }
             } while (!self_point);
 
-            // add current_substituted to substituted_list, remove them from unsubstituted_lsit
+            // add current_substituted to substituted_list, remove them from unsubstituted_list
+            substituted_list = bp::list()
             for (int i = 0; i < current_substituted_size; i++) {
                 substituted_list.append(current_substituted[i]);
                 if (exist(old_substituted, current_substituted_size, unsubstituted_list[i]) != -1) {
-                    delete_value(unsubstituted_list, unsubs_list_size, unsubstituted_list[i]);
-                    unsubs_list_size--;
+                    delete_value(unsubstituted_list, decrease_size, unsubstituted_list[i]);
+                    decrease_size--;
                 }
             }
         }
+    }
+
+    // parse result back to parameter
+    py_dis_to_rep = boost::python::list();
+    py_rep_set = boost::python::dict();
+
+    int substituted_size = bp::len(substituted_list)
+    for (int i = 0; i < data_size; i++) {
+        float min_distance = std::numeric_limits<float>::max();
+        int rep_index = -1;
+
+        // for each coreset index
+        for (int j = 0; j < substituted_size; j++) {
+            float distance = _get_distance(c_coord, distance_map, substituted_list[j], i);
+            if (distance < min_distance) {
+                min_distance = distance;
+                rep_index = substituted_list[j];
+            }
+        }
+
+        // update coreset
+        py_rep_set[i] = rep_index;
+        py_dis_to_rep[i] = min_distance;
     }
 }

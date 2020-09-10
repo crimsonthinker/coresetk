@@ -2,6 +2,7 @@ from sampling.sampling_algorithm import ProTraS
 from sampling.__c__.core import _ModificationProTraS
 import pandas as pd
 import ast
+import time
 
 class ModificationProTraS(ProTraS):
 
@@ -20,6 +21,7 @@ class ModificationProTraS(ProTraS):
         return self
 
     def fit(self, dataset: pd.DataFrame):
+        t0 = time.clock()
         print("Start ProTraS")
         coreset_index = None
         if self._sampling_phase == "default":
@@ -55,15 +57,31 @@ class ModificationProTraS(ProTraS):
         # calling C++ service
         c_mp = _ModificationProTraS()
 
-        shifted_list = []
-        c_mp.run_modification_protras(filtered_coreset_index, shifted_list, matrix_dataset)
+        substituted_list = []
+        py_dist_to_rep = []
+        py_rep_set = {}
+
+        c_mp.set_percentage(self._percentage)
+
+        # @parameters
+        # bp::dict &py_rep_set
+        # bp::dict &coreset_index
+        # bp::list &py_dis_to_rep
+        # bp::list &substituted_list
+        # bp::numpy::ndarray &coord
+        c_mp.run_modification_protras(py_rep_set, filtered_coreset_index, py_dist_to_rep, substituted_list, matrix_dataset)
 
         # TODO: handle matrix_dataset modification after calling C++ service
 
         sampling = None
-        if shifted_list:
-            sampling = dataset.at[shifted_list[0]]            
-        for i in shifted_list[1:]:
+        if substituted_list:
+            sampling = dataset.at[substituted_list[0]]            
+        for i in substituted_list[1:]:
             sampling = pd.concat([sampling, dataset[i]])
+
+        print("MP Coreset: {0}".format(len(sampling)))
+
+        t1 = time.clock()
+        self._duration = t1 - t0
 
         return sampling
