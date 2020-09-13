@@ -38,6 +38,8 @@ void _ModificationProTraS::run(const boost::python::numpy::ndarray& numpy){
         check_signal();
     }
 
+    std::cout << "OK" << std::endl;
+
     //shifting
     if(whole_list.size() == 1)
         shifted_list = whole_list;
@@ -51,6 +53,7 @@ void _ModificationProTraS::run(const boost::python::numpy::ndarray& numpy){
             std::set<int> current_shifted_list;
             current_shifted_list.insert(the_index);
             check_signal();
+            std::cout << "OK in while" << std::endl;
             do{
                 double min_dist = std::numeric_limits<double>::max();
                 int min_coreset_index = -1;

@@ -19,7 +19,7 @@ _ProTraS::~_ProTraS(){
         delete[] rep_dist;
 }
 
-void _ProTraS::set_eps(double eps){
+void _ProTraS::set_epsilon(double eps){
     epsilon = eps;
 }
 

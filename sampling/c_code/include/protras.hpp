@@ -36,7 +36,7 @@ class _ProTraS{
         //function
         ~_ProTraS();
         void set_cal_mode(std::string);
-        void set_eps(double);
+        void set_epsilon(double);
         virtual void run(const boost::python::numpy::ndarray&);
         boost::python::list get_rep_list();
         boost::python::list get_rep_of_point_list();

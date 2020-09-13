@@ -14,7 +14,7 @@
 #include <accessor.hpp>
 #include <utility>
 
-class _ModificationProTraS: protected _ProTraS{
+class _ModificationProTraS: public _ProTraS{
     private:
         double percentage;
     public:
