@@ -1,238 +1,237 @@
 #include <protras.hpp>
+#include <iostream>
+#include <fstream>
 
-double _ProTraS::_euclide_distance(double *p1, double *p2, int dim)
-{
-    double res = 0.0;
-    for (int i = 0; i < dim; i++)
-    {
-        res += pow(p1[i] - p2[i], 2);
+_ProTraS::~_ProTraS(){
+    if (rep_table){
+        for(int i = 0 ; i < data_size ; i++)
+            delete[] rep_table[i];
+        delete[] rep_table;
     }
-    return sqrt(res);
-}
 
-double _ProTraS::_get_distance(double* _c_coord, double **distance_map, int d1, int d2, int dim)
-{
+    if(distance_map){
+        for(int i = 0 ; i < data_size ; i++)
+            delete[] distance_map[i];
+        delete[] distance_map;
+    }
 
-    if (this->cal_mode == "memory-based")
-    {
-        int first = -1;
-        int second = -1;
-        if (d1 <= d2)
-        {
-            first = d1;
-            second = d2 - d1;
-        }
-        else
-        {
-            first = d2;
-            second = d1 - d2;
-        }
-        if (distance_map[first][second] < 0.0){
-            double distance = _euclide_distance(_c_coord + (d1 * dim), _c_coord + (d2 * dim), dim);
-            distance_map[first][second] = distance;
-        } 
-        return distance_map[first][second];
-    }
-    else
-    {
-        return _euclide_distance(_c_coord + (d1 * dim), _c_coord + (d2 * dim), dim);
-    }
-}
-
-void _ProTraS::_set_distance(double **distance_map, int d1, int d2, double distance_value)
-{
-    int first = -1;
-    int second = -1;
-    if (d1 <= d2)
-    {
-        first = d1;
-        second = d2 - d1;
-    }
-    else
-    {
-        first = d2;
-        second = d1 - d2;
-    }
-    distance_map[first][second] = distance_value;
+    if(rep_dist)
+        delete[] rep_dist;
 }
 
 void _ProTraS::set_eps(double eps){
-    this->epsilon = eps;
+    epsilon = eps;
 }
 
 void _ProTraS::set_cal_mode(std::string mode){
-    if(mode != "memory-based" && mode != "ram-based"){
-        std::cout << "Unknown calculation mode: Choosing default";
-        this->cal_mode = "ram-based";
-    }else{
-        this->cal_mode = mode;
+    if(mode != "memory-based" && mode != "ram-based")
+        // BOOST_LOG_TRIVIAL(warning) << "Unknown calculation mode: Choosing default";
+        cal_mode = "ram-based";
+    else
+        cal_mode = mode;
+    
+}
+
+void _ProTraS::rep_grouping(double *c_coord){
+    for(int i = 0 ; i < data_size ; i++){
+        if (rep_table[i][i] == false) //not a rep
+        {
+            double norm_min_dist = std::numeric_limits<double>::max();
+            int rep_idx = -1;
+            //for each representative
+            for(int t = 0 ; t < data_size ; t++){
+                if(rep_table[t][t] == true){ //it is a rep 
+                    double distance;
+                    if(cal_mode =="memory-based")
+                        distance = Accessor::get_distance(c_coord, distance_map, t, i, dim);
+                    else
+                        distance = Measure::euclide(c_coord + (t * dim), c_coord + (i * dim), dim);
+                    if (distance < norm_min_dist){
+                        norm_min_dist = distance;
+                        rep_idx = t;
+                    }
+                }
+                check_signal();
+            }
+            //add index of point to representative
+            rep_table[rep_idx][i] = true;
+            if (cal_mode == "memory_based")
+                Accessor::set_distance(distance_map, i, rep_idx, norm_min_dist);
+            rep_dist[i] = norm_min_dist;
+        }
     }
 }
 
-void _ProTraS::run_protras(boost::python::numpy::ndarray &coord, 
-                            boost::python::list &py_dis_to_rep,
-                            boost::python::dict &py_rep_set)
+void _ProTraS::find_new_rep(){
+    //Find cost and largest distance
+    cost = 0.0;
+    int the_lion_king = -1;
+    double max_wd = 0.0;
+    double max_distance = 0.0;
+    int largest_cost_rep_idx = 0;
+    //for each representative
+    for(int i = 0 ; i < data_size ; i++){
+        int rep_set_size = 0;
+        if(rep_table[i][i] == true){ //it is the rep
+            int farthest_point_idx = -1;
+            double norm_max_dist = 0.0;
+
+            //for each member point of representative
+            for(int t = 0 ; t < data_size ; t++)
+            {
+                if (rep_table[i][t] == true){ //it belongs to rep
+                    rep_set_size += 1;
+                    double current_distance = rep_dist[t];
+                    if (current_distance > norm_max_dist){
+                        norm_max_dist = current_distance;
+                        farthest_point_idx = t;
+                    }
+                    //reset representative after calculating
+                    if(i != t) //if it is not itself
+                        rep_table[i][t] = false;
+                }
+                check_signal();
+            }
+
+            //calculate cost
+            double pk = rep_set_size * norm_max_dist;
+            if (pk > max_wd){
+                max_distance = norm_max_dist;
+                max_wd = pk;
+                the_lion_king = farthest_point_idx;
+                largest_cost_rep_idx = i;
+            }
+            cost += (pk / (data_size * max_length));
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    rep_table[the_lion_king][the_lion_king] = true;
+    rep_dist[the_lion_king] = 0.0;
+}
+
+void _ProTraS::check_signal(){
+    if(PyErr_CheckSignals() == -1)
+        exit(1);
+}
+
+void _ProTraS::run(const boost::python::numpy::ndarray &numpy)
 {
-    //check data dimension
-    std::cout << this->epsilon << std::endl;
-    int data_dim = coord.get_nd();
-    if (data_dim != 2){
+     //check data dimension
+    int data_dim = numpy.get_nd();
+    if (data_dim != 2)
         return;
-    }
+
     //Get shape of data
-    int data_size = coord.shape(0);
-    int dim = coord.shape(1);
-    if(dim != 2){
+    data_size = numpy.shape(0);
+    dim = numpy.shape(1);
+    if(dim != 2)
         return;
-    }
 
     //convert coord to C++ 1d pointer
-    double* _c_coord = reinterpret_cast<double*>(coord.get_data());
+    double* c_coord = reinterpret_cast<double*>(numpy.get_data());
+
+    //check pointer before running protras
+    if (rep_table){
+        for(int i = 0 ; i < data_size ; i++)
+            delete[] rep_table[i];
+        delete[] rep_table;
+    }
+    rep_table = NULL;
+
+    if(rep_dist)
+        delete[] rep_dist;
+    rep_dist = NULL;
+
+    if(cal_mode == "memory_based"){
+        if(distance_map){
+            for(int i = 0 ; i < data_size ; i++)
+                delete[] distance_map[i];
+            delete[] distance_map;
+        }
+        distance_map = NULL;
+    }
     
     //initialize supporting variable
-    double **distance_map;
-    if(this->cal_mode == "memory-based"){
+    if(cal_mode == "memory-based")
         distance_map = new double*[data_size];
-    }
-    bool **rep = new bool*[data_size];
-    double *dis_to_rep = new double[data_size];
+    rep_table = new bool*[data_size];
+    rep_dist = new double[data_size];
     for(int i = 0 ; i < data_size ; i++){
-        if (this->cal_mode == "memory-based"){
-            distance_map[i] = new double[data_size - i]{-1.0};
+        rep_table[i] = new bool[data_size];
+        for(int t = 0 ; t < data_size ; t++)
+            rep_table[i][t] = false;
+        rep_dist[i] = -1.0;
+        if(cal_mode == "memory-based"){
+            distance_map[i] = new double[data_size - i];
+            for(int t = 0 ; t < data_size - i ; t++)
+                distance_map[i][t] = -1.0;
         }
-        rep[i] = new bool[data_size];
-        dis_to_rep[i] = -1.0;
     }
     
-    //initialize points: 0
-    int initial_point_index = 0;
+    //initialize random point
+    srand(time(NULL));
+    int initial_point_index = rand() % data_size;
     
 
     //initialize representative
-    double max_length = 0.0;
-    rep[initial_point_index][initial_point_index] = true;
-    for(int i = 0 ; i < data_size ; i++)
-    {
-        rep[initial_point_index][i] = true;
-        double distance = _get_distance(_c_coord, distance_map, initial_point_index, i, dim);
-        dis_to_rep[i] = distance;
+    max_length = 0.0;
+    rep_table[initial_point_index][initial_point_index] = true;
+    for(int i = 0 ; i < data_size ; i++){
+        rep_table[initial_point_index][i] = true;
+        double distance;
+        if(cal_mode =="memory-based")
+            distance = Accessor::get_distance(c_coord, distance_map, initial_point_index, i, dim);
+        else
+            distance = Measure::euclide(c_coord + (initial_point_index * dim), c_coord + (i * dim), dim);
+        rep_dist[i] = distance;
         if (distance > max_length)
-        {
             max_length = distance;
-        }
     }
 
     /****************************************************************************/
-    double cost = 0.0;
-    int coreset_size = 1;
-    do
-    {
-        //Step 1: For each representative, find cost and largest distance
-        cost = 0.0;
-        int the_lion_king = -1;
-        double max_wd = 0.0;
-        double max_distance = 0.0;
-        int largest_cost_rep_idx = 0;
-        //for each representative
+    cost = 0.0;
+    rep_size = data_size > 0 ? 1 : 0;
+
+    //catch interrupt signal
+    check_signal();
+    do{
+        //step 0: check signal
+        check_signal();
+
+        //step 1: Find new rep
+        find_new_rep();
+
+        //Step 2: Find group for each representative
+        rep_grouping(c_coord);
+
+        rep_size += 1;
+    } while (cost > epsilon && rep_size < data_size);
+}
+
+boost::python::list _ProTraS::get_rep_list(){
+    //return list of rep after running protras
+    boost::python::list result;
+    if(rep_size)
         for(int i = 0 ; i < data_size ; i++)
-        {
-            int rep_size = 0;
-            if(rep[i][i] == true){ //it is the rep
-                int farthest_point_idx = -1;
-                double norm_max_dist = 0.0;
+            if(rep_table[i][i] == true)
+                result.append(i);
+    return result;
+}
 
-                //for each member point of representative
-                for(int t = 0 ; t < data_size ; t++)
-                {
-                    if (rep[i][t] == true){ //it belongs to rep
-                        rep_size += 1;
-                        double current_distance = dis_to_rep[t];
-                        if (current_distance > norm_max_dist)
-                        {
-                            norm_max_dist = current_distance;
-                            farthest_point_idx = t;
-                        }
-                        //reset representative after calculating
-                        if(i != t){ //if it is not itself
-                            rep[i][t] = false;
-                        }
-                    }
-                }
+boost::python::list _ProTraS::get_rep_of_point_list(){
+    boost::python::list result;
+    if(rep_size)
+        for(int i = 0 ; i < data_size ; i++) //for each point
+            for(int t = 0 ; t < data_size ; t++) //for each rep
+                if(rep_table[t][i] == true)
+                    result.append(t);
+    return result;
+}
 
-                //calculate cost
-                double pk = rep_size * norm_max_dist;
-                if (pk > max_wd)
-                {
-                    max_distance = norm_max_dist;
-                    max_wd = pk;
-                    the_lion_king = farthest_point_idx;
-                    largest_cost_rep_idx = i;
-                }
-                cost += (pk / (data_size * max_length));
-            }
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //step 2: add new point as the representative
-        rep[the_lion_king][the_lion_king] = true;
-        dis_to_rep[the_lion_king] = 0.0;
-
-        //Step 3: Find group for each representative
-        //For each DataPoint
+boost::python::list _ProTraS::get_rep_dist_list(){
+    boost::python::list result;
+    if(rep_size)
         for(int i = 0 ; i < data_size ; i++)
-        {
-            if (rep[i][i] == false) //not a rep
-            {
-                double norm_min_dist = std::numeric_limits<double>::max();
-                int rep_idx = -1;
-                //for each representative
-                for(int t = 0 ; t < data_size ; t++)
-                {
-                    if(rep[t][t] == true) //is a rep
-                    { 
-                        double distance = _get_distance(_c_coord, distance_map, i, t, dim);
-                        if (distance < norm_min_dist)
-                        {
-                            norm_min_dist = distance;
-                            rep_idx = t;
-                        }
-                    }
-                }
-                //add index of point to representative
-                rep[rep_idx][i] = true;
-                if (cal_mode == "memory_based")
-                {
-                    _set_distance(distance_map, i, rep_idx, norm_min_dist);
-                }
-                dis_to_rep[i] = norm_min_dist;
-            }
-        }
-
-        ///////////////////////////////////////////////////////////////////////////////////////////////////
-        coreset_size += 1;
-    } while (cost > epsilon && coreset_size < data_size);
-
-    for(int i = 0 ; i < data_size ; i++){
-        py_dis_to_rep.append(dis_to_rep[i]);
-    }
-    for(int x = 0 ; x < data_size ; x++){
-        if(rep[x][x] == true){ //line of rep
-            py_rep_set[x] = boost::python::list();
-            boost::python::list holder;
-            for(int y = 0 ; y < data_size ; y++){
-                if(rep[x][y] == true){
-                    holder.append(y);
-                }
-                py_rep_set[x] = holder;
-            }
-        }
-    }
-
-    //delete objects
-    for(int x = 0 ; x < data_size ; x++){
-        if(this->cal_mode == "memory-based"){
-            delete[] distance_map[x];
-        }
-        delete[] rep[x];
-    }
-    delete[] dis_to_rep;
+            result.append(rep_dist[i]);
+    return result;
 }

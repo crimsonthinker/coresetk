@@ -5,30 +5,26 @@ from utils.pipeline_operator import PipelineOperator
 class SamplingAlgorithm(PipelineOperator, ABC):
     def __init__(self, plot_enable=False,
                 log_enable=False,
-                distance_function='euclidean',
-                cal_mode='ram-based',
-                percentage=0.5,
-                epsilon=1.0,
-                sampling_mode='default',
-                sampling_phase='default'):
+                distance_function='euclidean', #manhattan
+                cal_mode='ram-based'):
         self._plot_enable = plot_enable
         self._log_enable = log_enable
         self._distance_function = distance_function
         self._cal_mode = cal_mode
-        self._percentage = percentage
-        self._epsilon = epsilon
         self._sampling_mode = sampling_mode
 
     def set_distance_function(self, new_dis_func):
-        pass
+        if new_dis_func != 'euclidean' and new_dis_func != 'manhattan':
+            print(f"Unrecognized distance function: {new_dis_func}. Using default.")
+            self._distance_function = 'euclidean'
+        else:
+            self._distance_function = new_dis_func
 
     def set_percentage(self, new_percentage):
-        pass
+        if new_percentage > 1.0 or new_percentage < 0.0:
+            print(f"Invalid percentage value: {}. Setting default.")
 
     def set_sampling_mode(self, mode):
-        pass
-
-    def set_sampling_phase(self, mode):
         pass
 
     def set_cal_mode(self, mode):
