@@ -156,7 +156,7 @@ class _TweetProducer(Producer):
         auth = tweepy.OAuthHandler(self.twitter_config.api_key,self.twitter_config.api_key_secret)
         auth.set_access_token(self.twitter_config.access_token, self.twitter_config.access_token_secret)
         api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-
+store_data
         tweets_listener = MyStreamListener(api)
         tweet_stream = tweepy.Stream(api.auth, tweets_listener)
         

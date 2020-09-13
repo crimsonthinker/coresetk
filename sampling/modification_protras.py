@@ -59,7 +59,7 @@ class ModificationProTraS(ProTraS):
 
         substituted_list = []
         py_dist_to_rep = []
-        py_rep_set = {}
+        py_rep_set = self._representative
 
         c_mp.set_percentage(self._percentage)
 
