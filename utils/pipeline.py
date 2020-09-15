@@ -15,6 +15,11 @@ class Pipeline:
         for operator in self._operator_list:
             self._obj = operator.process(self._obj)
             self._duration = self._duration + operator.time_elapsed()
+
+    def fit_and_transform(self, dataset):
+        self.fit(dataset)
+        self.transform()
+        return self._obj
     
     def time_elapsed(self):
         return self._duration

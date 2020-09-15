@@ -1,28 +1,44 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
 #include <string>
-#include <set>
+#include <stdio.h>
 #include <boost/python/list.hpp>
 #include <boost/python/dict.hpp>
 #include <boost/python.hpp>
 #include <math.h>
 #include <limits>
 #include <boost/python/numpy.hpp>
+#include <measure.hpp>
+#include <accessor.hpp>
+#include <stdlib.h>
+#include <time.h>
 
-class _ProTraS
-{
+class _ProTraS{
     private:
-        float epsilon = 0.015;
-        std::string cal_mode;
-        float _euclide_distance(float*, float*, int);
-        void _set_distance(float**, int, int, float);
+        double cost = 0.0;
+        double max_length = 0.0;
     protected:
-        float _get_distance(float**, float**, int, int, int);
+        //attribute
+        int data_size = 0; // mainly used for deleting
+        int rep_size = 0;
+        int dim = 0;
+        std::string cal_mode = "memory-based"; // or ram-based
+        double epsilon = 0.015;
+        bool **rep_table = NULL;
+        double *rep_dist = NULL;
+        double **distance_map = NULL;
+        //function
+        void rep_grouping(double *);
+        void find_new_rep();
+        void check_signal();
     public:
+        //function
+        ~_ProTraS();
         void set_cal_mode(std::string);
-        void set_eps(float);
-        void run_protras(boost::python::numpy::ndarray&,
-        boost::python::list&, boost::python::dict&);
+        void set_epsilon(double);
+        virtual void run(const boost::python::numpy::ndarray&);
+        boost::python::list get_rep_list();
+        boost::python::list get_rep_of_point_list();
+        boost::python::list get_rep_dist_list();
 };

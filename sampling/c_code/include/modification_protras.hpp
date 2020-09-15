@@ -11,11 +11,12 @@
 #include <limits>
 #include <boost/python/numpy.hpp>
 #include <protras.hpp>
+#include <accessor.hpp>
+#include <utility>
 
-class _ModificationProTraS : private _ProTraS
-{
+class _ModificationProTraS: public _ProTraS{
     private:
-        float percentage = 0.5;c
+        float percentage = 0.5;
         float* _make_vector(float **, int, int, int);
         float _get_cosine(float **, float **, int, int, int, int);
         float _cosine_angle(float *, float *, int);
@@ -25,3 +26,8 @@ class _ModificationProTraS : private _ProTraS
         void run_modification_protras(bp::dict&, bp::dict&, bp::list&, bp::list&, bp::numpy::ndarray&);
 };
 
+//         double percentage;
+//     public:
+//         void set_percentage(double);
+//         void run(const boost::python::numpy::ndarray&);
+// };
